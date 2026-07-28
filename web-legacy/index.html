@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>의료영상 분류 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+<!-- ══ 헤더 ══════════════════════════════════════════════════════════════ -->
+<header class="app-header">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-title" id="app-title">의료영상 분류 시스템</span>
+      <span class="brand-sub" id="app-subtitle">주제 미확정 — 템플릿 모드</span>
+    </div>
+    <span class="badge" id="app-badge">Teachable Machine</span>
+  </div>
+
+  <div class="header-right">
+    <div class="pill" id="model-pill" data-state="idle">
+      <span class="pill-dot"></span>
+      <span class="pill-text">모델 미로드</span>
+    </div>
+  </div>
+
+  <nav class="nav" role="tablist" aria-label="주 메뉴">
+    <button class="nav-btn active" role="tab" aria-selected="true"  data-view="live">판독</button>
+    <button class="nav-btn"        role="tab" aria-selected="false" data-view="eval">성능 평가</button>
+    <button class="nav-btn"        role="tab" aria-selected="false" data-view="history">이력</button>
+    <button class="nav-btn"        role="tab" aria-selected="false" data-view="settings">설정</button>
+  </nav>
+</header>
+
+<main class="app-main">
+
+<!-- ══ 판독 뷰 ══════════════════════════════════════════════════════════ -->
+<section class="view active" id="view-live" role="tabpanel">
+  <div class="banner banner-warn" id="no-model-banner">
+    <b>모델이 로드되지 않았습니다.</b> 설정 탭에서 Teachable Machine 모델 URL을 입력하세요.
+    <button class="btn btn-sm" data-goto="settings">설정으로 이동</button>
+  </div>
+
+  <div class="split">
+    <!-- ── 입력 ── -->
+    <div class="card">
+      <div class="seg" role="tablist" aria-label="입력 소스">
+        <button class="seg-btn active" role="tab" aria-selected="true"  data-input="cam">웹캠</button>
+        <button class="seg-btn"        role="tab" aria-selected="false" data-input="img">이미지</button>
+      </div>
+
+      <!-- 웹캠 -->
+      <div class="pane active" id="pane-cam" role="tabpanel">
+        <div class="stage" id="cam-stage">
+          <video id="cam-video" autoplay muted playsinline hidden></video>
+          <div class="stage-idle" id="cam-idle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            <p>카메라를 시작하세요</p>
+            <span class="hint">localhost 또는 https 환경에서만 동작합니다</span>
+          </div>
+          <div class="guide" id="cam-guide" hidden>
+            <div class="guide-box"><span class="guide-label">판독 영역</span></div>
+          </div>
+          <div class="live-badge" id="cam-badge" hidden><i class="dot"></i>LIVE</div>
+          <div class="coach" id="cam-coach" hidden></div>
+        </div>
+
+        <div class="qstrip" id="qstrip" hidden>
+          <div class="qitem"><span class="qk">품질</span><span class="qv" id="q-score">—</span></div>
+          <div class="qitem"><span class="qk">초점</span><span class="qv" id="q-blur">—</span></div>
+          <div class="qitem"><span class="qk">밝기</span><span class="qv" id="q-luma">—</span></div>
+          <div class="qitem"><span class="qk">대비</span><span class="qv" id="q-contrast">—</span></div>
+        </div>
+
+        <div class="toast toast-danger" id="cam-error" hidden></div>
+
+        <div class="btn-row">
+          <button class="btn btn-accent" id="cam-start">카메라 시작</button>
+          <button class="btn" id="cam-live" disabled aria-pressed="false">실시간 판독 시작</button>
+          <button class="btn" id="cam-snap" disabled>캡처 &amp; 판독</button>
+          <button class="btn" id="cam-stop" disabled>중지</button>
+        </div>
+      </div>
+
+      <!-- 이미지 -->
+      <div class="pane" id="pane-img" role="tabpanel">
+        <div class="dropzone" id="img-drop" tabindex="0" role="button"
+             aria-label="이미지를 업로드하려면 클릭하거나 파일을 끌어다 놓으세요">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <p>이미지를 끌어다 놓거나 클릭해서 선택</p>
+          <span class="hint">JPG · PNG · WEBP</span>
+        </div>
+        <input type="file" id="img-file" accept="image/*" hidden />
+
+        <div class="stage" id="img-stage" hidden>
+          <img id="img-preview" alt="업로드한 영상 미리보기" />
+        </div>
+
+        <div class="qstrip" id="img-qstrip" hidden>
+          <div class="qitem"><span class="qk">품질</span><span class="qv" id="iq-score">—</span></div>
+          <div class="qitem"><span class="qk">초점</span><span class="qv" id="iq-blur">—</span></div>
+          <div class="qitem"><span class="qk">밝기</span><span class="qv" id="iq-luma">—</span></div>
+          <div class="qitem"><span class="qk">대비</span><span class="qv" id="iq-contrast">—</span></div>
+        </div>
+
+        <div class="toast toast-danger" id="img-error" hidden></div>
+
+        <div class="btn-row">
+          <button class="btn btn-accent" id="img-run" disabled>판독하기</button>
+          <button class="btn" id="img-reset" hidden>초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 결과 ── -->
+    <div class="card" id="result-card">
+      <div class="card-head">
+        <span class="card-title">판독 결과</span>
+        <span class="chip" id="pipeline-chip" hidden></span>
+      </div>
+
+      <div class="card-body">
+        <div class="empty" id="result-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p>모델을 불러오고 영상을 판독하면<br>결과가 여기에 표시됩니다</p>
+        </div>
+
+        <div id="result-body" hidden>
+          <!-- 판정 -->
+          <div class="verdict" id="verdict" data-tone="neutral">
+            <span class="verdict-icon" id="verdict-icon">🩻</span>
+            <div class="verdict-text">
+              <div class="verdict-head" id="verdict-head">—</div>
+              <div class="verdict-detail" id="verdict-detail">—</div>
+            </div>
+          </div>
+
+          <!-- 실시간 확정 진행 -->
+          <div class="confirm" id="confirm-row" hidden>
+            <div class="confirm-meta">
+              <span id="confirm-label">판정 확정까지</span>
+              <span class="mono" id="confirm-count">0/0</span>
+            </div>
+            <div class="track"><div class="fill" id="confirm-fill" style="width:0%"></div></div>
+          </div>
+
+          <div class="note note-advice" id="advice" hidden></div>
+
+          <!-- 불확실성 지표 -->
+          <div class="metrics" id="uncertainty">
+            <div class="metric"><span class="mk">유사도</span><span class="mv mono" id="u-top">—</span></div>
+            <div class="metric"><span class="mk">보정 신뢰도</span><span class="mv mono" id="u-cal">—</span></div>
+            <div class="metric"><span class="mk">1·2위 차이</span><span class="mv mono" id="u-margin">—</span></div>
+            <div class="metric"><span class="mk">불확실성</span><span class="mv mono" id="u-entropy">—</span></div>
+            <div class="metric"><span class="mk">흔들림</span><span class="mv mono" id="u-jitter">—</span></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- 클래스별 유사도 -->
+          <div class="bars" id="bars"></div>
+
+          <div class="divider"></div>
+
+          <!-- 근거 히트맵 -->
+          <div class="section">
+            <div class="section-head">
+              <span class="section-title">판정 근거 (오클루전 분석)</span>
+              <button class="btn btn-sm" id="heat-run" disabled>근거 분석</button>
+            </div>
+            <p class="section-desc">
+              화면을 격자로 나눠 한 칸씩 가린 뒤 재추론합니다. 유사도가 크게 떨어진 칸이
+              모델이 실제로 근거로 삼은 영역입니다.
+            </p>
+            <div class="heat-wrap" id="heat-wrap" hidden>
+              <canvas id="heat-canvas" width="224" height="224"></canvas>
+              <div class="heat-legend"><span>약</span><i class="heat-scale"></i><span>강</span></div>
+            </div>
+            <div class="progress" id="heat-progress" hidden>
+              <div class="track"><div class="fill" id="heat-fill" style="width:0%"></div></div>
+              <span class="mono" id="heat-count">0/0</span>
+            </div>
+            <div class="note" id="heat-note" hidden></div>
+          </div>
+
+          <div class="ts mono" id="result-ts"></div>
+
+          <div class="note note-safety" id="safety-note"></div>
+          <div class="note note-privacy" id="privacy-note"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 성능 평가 뷰 ═════════════════════════════════════════════════════ -->
+<section class="view" id="view-eval" role="tabpanel">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">홀드아웃 평가</span>
+      <span class="chip chip-muted">TM에 넣지 않은 데이터로 직접 검증</span>
+    </div>
+    <div class="card-body">
+      <p class="section-desc">
+        TM은 학습/검증 분할을 우리가 통제할 수 없습니다. 증강 이미지를 올리면 같은 원본의
+        변형본이 양쪽에 섞여 정확도가 부풀려집니다. <b>여기서 나온 수치가 발표에 쓸 값입니다.</b>
+      </p>
+
+      <div class="dropzone dropzone-wide" id="eval-drop" tabindex="0" role="button"
+           aria-label="홀드아웃 폴더를 선택하거나 끌어다 놓으세요">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <p>홀드아웃 폴더를 끌어다 놓거나 클릭해서 선택</p>
+          <span class="hint">폴더 이름이 정답 클래스명이 됩니다 — <code>holdout/normal/…</code>, <code>holdout/abnormal/…</code></span>
+      </div>
+      <input type="file" id="eval-files" webkitdirectory directory multiple hidden />
+
+      <div class="toast toast-danger" id="eval-error" hidden></div>
+      <div class="note" id="eval-labelcheck" hidden></div>
+
+      <div class="progress" id="eval-progress" hidden>
+        <div class="track"><div class="fill" id="eval-fill" style="width:0%"></div></div>
+        <span class="mono" id="eval-count">0/0</span>
+        <button class="btn btn-sm" id="eval-cancel">중단</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="eval-results" hidden>
+    <!-- 요약 -->
+    <div class="card">
+      <div class="card-head"><span class="card-title">임상 지표</span>
+        <span class="chip" id="eval-priority-chip"></span>
+      </div>
+      <div class="card-body">
+        <div class="tiles" id="eval-tiles"></div>
+
+        <div class="divider"></div>
+
+        <div class="section-head">
+          <span class="section-title">판단 보류 임계값 ↔ 민감도·특이도 트레이드오프</span>
+        </div>
+        <p class="section-desc">
+          임계값을 올리면 확정 판정이 줄고 보류가 늘어납니다. 의료 도메인에서는 정확도보다
+          이 두 지표의 균형이 언어입니다. 슬라이더를 움직여 운영점을 정하고, 그 근거를 발표에서 설명하세요.
+        </p>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="eval-th">임계값 <output class="mono" id="eval-th-out">0.70</output></label>
+            <input type="range" id="eval-th" min="0.05" max="0.95" step="0.01" value="0.70" />
+          </div>
+          <div class="field field-narrow">
+            <label for="eval-policy">보류 처리</label>
+            <select id="eval-policy">
+              <option value="escalate">양성 의심으로 2차 확인 (임상적 안전)</option>
+              <option value="exclude">분석에서 제외 (순수 모델 성능)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sweep" id="eval-sweep"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-sm" id="eval-apply-th">이 임계값을 판독에 적용</button>
+          <button class="btn btn-sm" id="eval-youden">균형점 찾기 (Youden J)</button>
+          <button class="btn btn-sm" id="eval-sens95">민감도 95% 확보점</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 혼동행렬 -->
+    <div class="card">
+      <div class="card-head"><span class="card-title">혼동행렬 · 클래스별 성능</span></div>
+      <div class="card-body">
+        <div class="scroll-x"><table class="tbl" id="eval-cm"></table></div>
+        <div class="divider"></div>
+        <div class="scroll-x"><table class="tbl" id="eval-perclass"></table></div>
+        <div class="note" id="eval-confusions" hidden></div>
+      </div>
+    </div>
+
+    <!-- 캘리브레이션 -->
+    <div class="card">
+      <div class="card-head"><span class="card-title">신뢰도 캘리브레이션</span>
+        <button class="btn btn-sm" id="cal-build">이 결과로 보정표 생성</button>
+      </div>
+      <div class="card-body">
+        <p class="section-desc">
+          softmax 확률은 신뢰도가 아닙니다. 심하게 과신합니다. 모델이 90%라고 말한 예측들만
+          모아 실제 정답률을 세어 보고, 판독 화면에는 보정된 값을 함께 표시합니다.
+        </p>
+        <div class="note" id="cal-summary" hidden></div>
+        <div class="scroll-x"><table class="tbl" id="cal-table" hidden></table></div>
+      </div>
+    </div>
+
+    <!-- 실패 사례 -->
+    <div class="card">
+      <div class="card-head"><span class="card-title">실패 사례 갤러리</span>
+        <span class="chip chip-muted">확신하며 틀린 순서</span>
+      </div>
+      <div class="card-body">
+        <p class="section-desc">
+          약점을 먼저 드러내는 편이 신뢰를 얻습니다. 심사위원이 찾아내기 전에 우리가 알고 있어야 합니다.
+          확신도가 높은데 틀린 사례가 가장 위험합니다.
+        </p>
+        <div class="gallery" id="fail-gallery"></div>
+        <div class="btn-row">
+          <button class="btn btn-sm" id="eval-csv">평가 결과 CSV 내보내기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 이력 뷰 ══════════════════════════════════════════════════════════ -->
+<section class="view" id="view-history" role="tabpanel">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">판독 이력</span>
+      <div class="btn-row">
+        <button class="btn btn-sm" id="hist-csv">CSV 내보내기</button>
+        <button class="btn btn-sm btn-danger" id="hist-clear">전체 삭제</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <p class="section-desc">
+        원본 영상은 저장하지 않습니다. 96px 썸네일과 판정 메타데이터만 이 브라우저에 남습니다.
+        판정 당시의 임계값도 함께 기록되므로 사후에 정책을 바꿔도 이 판정은 재현됩니다.
+      </p>
+      <div class="tiles" id="hist-tiles"></div>
+      <div class="scroll-x"><table class="tbl" id="hist-table"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 설정 뷰 ══════════════════════════════════════════════════════════ -->
+<section class="view" id="view-settings" role="tabpanel">
+
+  <!-- 모델 -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">모델 파이프라인</span></div>
+    <div class="card-body">
+      <p class="section-desc">
+        TM 모델 URL은 <code>Export Model → Upload my model</code>에서 얻습니다.
+        게이트키퍼를 켜면 <b>"판독 대상인가?"</b>를 먼저 판단해, 학습한 어느 클래스도 아닌
+        입력에 모델이 억지 답을 내는 문제를 구조로 막습니다.
+      </p>
+
+      <!-- 게이트키퍼 -->
+      <div class="model-row">
+        <div class="model-head">
+          <label class="check">
+            <input type="checkbox" id="gate-enabled" />
+            <span>① 게이트키퍼 <span class="muted">판독 대상 여부만 판단</span></span>
+          </label>
+          <span class="state" id="gate-state" data-state="idle">미로드</span>
+        </div>
+        <div class="url-row">
+          <input class="input mono" id="gate-url" type="url" spellcheck="false"
+                 placeholder="https://teachablemachine.withgoogle.com/models/…/" />
+          <button class="btn" id="gate-load">불러오기</button>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="gate-pass">통과 클래스 <span class="muted">(쉼표로 구분)</span></label>
+            <input class="input mono" id="gate-pass" type="text" placeholder="target" />
+          </div>
+          <div class="field">
+            <label for="gate-min">통과 최소 확신도 <output class="mono" id="gate-min-out">0.60</output></label>
+            <input type="range" id="gate-min" min="0.3" max="0.95" step="0.01" value="0.6" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 주분류기 -->
+      <div class="model-row">
+        <div class="model-head">
+          <span>② 주분류기 <span class="muted">필수</span></span>
+          <span class="state" id="primary-state" data-state="idle">미로드</span>
+        </div>
+        <div class="url-row">
+          <input class="input mono" id="primary-url" type="url" spellcheck="false"
+                 placeholder="https://teachablemachine.withgoogle.com/models/…/" />
+          <button class="btn btn-accent" id="primary-load">불러오기</button>
+        </div>
+      </div>
+
+      <!-- 앙상블 -->
+      <div class="model-row">
+        <div class="model-head">
+          <span>③ 앙상블 <span class="muted">서로 다른 전처리로 학습한 추가 모델 — 소프트보팅</span></span>
+          <button class="btn btn-sm" id="ens-add">모델 추가</button>
+        </div>
+        <div id="ens-list"></div>
+        <p class="hint">
+          원본 / CLAHE / ROI 확대본으로 각각 학습한 3개를 등록하면 단일 모델보다 안정적입니다.
+          클래스 집합은 반드시 동일해야 합니다.
+        </p>
+      </div>
+
+      <div class="note" id="class-check" hidden></div>
+    </div>
+  </div>
+
+  <!-- 판정 정책 -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">판정 정책</span>
+      <button class="btn btn-sm" id="policy-reset">초기값 복원</button>
+    </div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label for="s-hold">판단 보류 임계값 <output class="mono" id="s-hold-out">0.70</output></label>
+          <input type="range" id="s-hold" min="0.05" max="0.95" step="0.01" />
+          <span class="hint">1위 유사도가 이 값 미만이면 결과를 발표하지 않습니다</span>
+        </div>
+        <div class="field">
+          <label for="s-margin">1·2위 최소 차이 <output class="mono" id="s-margin-out">0.15</output></label>
+          <input type="range" id="s-margin" min="0" max="0.6" step="0.01" />
+          <span class="hint" id="s-margin-hint">차이가 작으면 "구분 어려움"으로 처리합니다</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="s-window">이동평균 창 <output class="mono" id="s-window-out">8</output> 프레임</label>
+          <input type="range" id="s-window" min="1" max="30" step="1" />
+          <span class="hint">실시간 판독의 프레임 단위 흔들림을 억제합니다</span>
+        </div>
+        <div class="field">
+          <label for="s-confirm">확정 조건 <output class="mono" id="s-confirm-out">5</output> 연속 프레임</label>
+          <input type="range" id="s-confirm" min="1" max="30" step="1" />
+          <span class="hint">같은 판정이 연속으로 유지될 때만 결과를 확정합니다</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="s-interval">추론 간격 <output class="mono" id="s-interval-out">200</output> ms</label>
+          <input type="range" id="s-interval" min="60" max="1000" step="20" />
+        </div>
+        <div class="field">
+          <label class="check">
+            <input type="checkbox" id="s-cal" />
+            <span>보정 신뢰도 함께 표시</span>
+          </label>
+          <span class="hint" id="s-cal-hint">보정표가 있어야 적용됩니다</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 품질 게이트 -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">프레임 품질 게이트</span>
+      <span class="chip" id="q-live-chip" hidden></span>
+    </div>
+    <div class="card-body">
+      <p class="section-desc">
+        흐리거나 어두운 프레임을 모델에 먹이면 모델은 그래도 무언가를 답합니다. 그 답은 노이즈입니다.
+        여기서 미리 걸러내고 대신 촬영을 코칭합니다. <b>모델을 재학습하지 않고 정확도를 올리는 가장 값싼 방법입니다.</b>
+      </p>
+      <label class="check">
+        <input type="checkbox" id="s-qenabled" />
+        <span>품질 게이트 사용</span>
+      </label>
+      <div class="field-row">
+        <div class="field">
+          <label for="s-blur">최소 초점 선명도 <output class="mono" id="s-blur-out">55</output></label>
+          <input type="range" id="s-blur" min="5" max="300" step="1" />
+          <span class="hint">라플라시안 분산. 웹캠을 켜고 실제 수치를 보며 맞추세요</span>
+        </div>
+        <div class="field">
+          <label>허용 밝기 범위
+            <output class="mono" id="s-luma-out">45 – 225</output>
+          </label>
+          <input type="range" id="s-lumamin" min="0" max="128" step="1" />
+          <input type="range" id="s-lumamax" min="128" max="255" step="1" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 데이터 -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">저장 데이터</span></div>
+    <div class="card-body">
+      <div class="tiles" id="storage-tiles"></div>
+      <div class="btn-row">
+        <button class="btn btn-sm" id="wipe-cal">보정표 삭제</button>
+        <button class="btn btn-sm" id="wipe-holdout">평가 결과 삭제</button>
+        <button class="btn btn-sm btn-danger" id="wipe-all">전체 초기화</button>
+      </div>
+      <div class="note note-privacy" id="privacy-note-2"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<canvas id="work-canvas" width="224" height="224" hidden></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

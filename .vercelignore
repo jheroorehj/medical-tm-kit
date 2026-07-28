@@ -1,0 +1,6 @@
+prep/
+data/
+web-legacy/
+test-logic.mjs
+*.md
+!web/**

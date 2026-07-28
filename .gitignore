@@ -1,0 +1,14 @@
+# 데이터셋 — 라이선스·용량 문제로 저장소에 올리지 않습니다.
+# 각자 로컬에서 prep/from_csv.py 또는 pipeline.py 로 생성하세요.
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 배포
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
