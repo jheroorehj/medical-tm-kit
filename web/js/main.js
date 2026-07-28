@@ -824,7 +824,7 @@ async function runHeatmap() {
       grid: 8,
       targetId: app.lastDecision.top.id,
       onProgress: (done, total) => {
-        $('#heat-fill').style.width = `${(done / total * 100).toFixed(0)}%`;
+        ui.setFill($('#heat-fill'), done / total);
         ui.setText($('#heat-count'), `${done} / ${total} · ${Math.round(done / total * 100)}%`);
       },
       token,
@@ -981,7 +981,7 @@ async function startEval(items) {
     roi: app.settings.inferRoi,
     onProgress: (done, total) => {
       ui.setText($('#batch-done'), String(done));
-      $('#batch-fill').style.width = `${(done / total * 100).toFixed(1)}%`;
+      ui.setFill($('#batch-fill'), done / total);
     },
     token,
   });

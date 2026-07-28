@@ -54,7 +54,19 @@
 
   --mono: 'JetBrains Mono', ui-monospace, monospace;
   --sans: 'Noto Sans KR', system-ui, sans-serif;
-  --ease: cubic-bezier(.32,.72,0,1);
+
+  /* 이징 — 기본 CSS 이징은 약해서 의도가 드러나지 않습니다.
+   * ease-in 은 쓰지 않습니다: 처음이 느려서 사용자가 가장 주의 깊게 보는
+   * 순간에 반응이 없는 것처럼 느껴집니다. */
+  --ease-out:    cubic-bezier(.23, 1, .32, 1);      /* 진입·반응 (기본) */
+  --ease-in-out: cubic-bezier(.77, 0, .175, 1);     /* 화면 내 이동 */
+  --ease:        cubic-bezier(.32, .72, 0, 1);      /* iOS 드로어 계열 */
+
+  /* 지속시간 — UI 는 300ms 를 넘지 않습니다 */
+  --t-press: 120ms;   /* 눌림 피드백 */
+  --t-hover: 150ms;   /* 색 변화 */
+  --t-state: 220ms;   /* 상태 전환 */
+  --t-fill:  380ms;   /* 결과 막대 (판독마다 한 번) */
 }
 
 body {
@@ -80,14 +92,26 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 /* ── 애니메이션 ───────────────────────────────────────────────────────── */
 /* ringA/ringB 는 동일한 키프레임입니다. 판정이 갱신될 때 두 이름을 번갈아
  * 적용해 애니메이션을 강제로 재시작시킵니다 (디자인의 flash % 2 트릭). */
-@keyframes ringA { 0% { box-shadow: 0 0 0 0 rgba(179,38,30,.5); } 100% { box-shadow: 0 0 0 16px rgba(179,38,30,0); } }
-@keyframes ringB { 0% { box-shadow: 0 0 0 0 rgba(179,38,30,.5); } 100% { box-shadow: 0 0 0 16px rgba(179,38,30,0); } }
+@keyframes ringA { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.03); } }
+@keyframes ringB { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.03); } }
 @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 @keyframes scanSweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(1100%); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* 모션 축소는 "애니메이션 0" 이 아니라 "움직임 제거, 이해를 돕는 전환은 유지" 입니다.
+ * 색·불투명도 전환은 상태 변화를 읽는 데 필요하므로 남기고,
+ * 이동·확대·무한 반복만 없앱니다. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, background-color, border-color, color, box-shadow !important;
+    transition-duration: 150ms !important;
+  }
+  /* 막대·진행바는 즉시 최종값으로 */
+  .bar-fill, .prog-fill, .confirm-fill, .batch-fill, .step-progress .fill,
+  .switch i { transition: none !important; }
 }
 
 /* ── 페이지 골격 ──────────────────────────────────────────────────────── */
@@ -109,9 +133,12 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
   font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em;
   border: 0; padding: 7px 13px; cursor: pointer;
   background: transparent; color: var(--t3);
-  transition: background .15s, color .15s;
+  transition: background var(--t-hover) ease, color var(--t-hover) ease,
+              transform var(--t-press) var(--ease-out);
 }
 .navbtn:hover { color: #fff; }
+.navbtn:active { transform: scale(.98); }
+.navbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .navbtn.on { background: #fff; color: var(--ink); }
 .navbtn.on:hover { color: var(--ink); }
 .kbd-hint {
@@ -119,12 +146,15 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
   font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
   color: var(--t3); border: 1px solid var(--ink-2); padding: 5px 8px;
   background: transparent; cursor: pointer;
-  transition: color .15s, border-color .15s;
+  transition: color var(--t-hover) ease, border-color var(--t-hover) ease,
+              transform var(--t-press) var(--ease-out);
 }
 .kbd-hint:hover { color: #fff; border-color: var(--t3); }
+.kbd-hint:active { transform: scale(.97); }
+.kbd-hint:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .view { display: none; }
-.view.on { display: block; }
+.view.on { display: block; animation: fadeIn 180ms var(--ease-out); }
 
 /* ── 랜딩 ─────────────────────────────────────────────────────────────── */
 .hero {
@@ -260,6 +290,7 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 }
 .tabbtn span { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; opacity: .7; }
 .tabbtn:hover { color: var(--ink); }
+.tabbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; }
 .tabbtn[aria-selected="true"] { font-weight: 700; color: var(--ink); border-bottom-color: var(--ink); }
 
 .statuspills { display: flex; align-items: center; gap: 6px; padding-bottom: 12px; }
@@ -279,30 +310,37 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 .spill[data-state="loading"] span { color: var(--blue-t); }
 
 .tab { display: none; }
-.tab.on { display: block; animation: fadeUp .24s var(--ease); }
+/* 탭 전환은 반복 동작이라 이동을 넣지 않습니다. 불투명도만 아주 짧게. */
+.tab.on { display: block; animation: fadeIn 140ms var(--ease-out); }
 
 /* ── 버튼 ─────────────────────────────────────────────────────────────── */
 .btn {
   font-family: var(--sans); font-size: 13px; font-weight: 600;
   border-radius: 4px; padding: 9px 14px; cursor: pointer;
   background: var(--card); color: var(--ink); border: 1px solid var(--ink);
-  transition: background .15s, color .15s, border-color .15s;
+  /* transform 은 눌림 전용이라 hover 보다 빠르게 둡니다 */
+  transition: background var(--t-hover) ease, color var(--t-hover) ease,
+              border-color var(--t-hover) ease, transform var(--t-press) var(--ease-out);
   white-space: nowrap;
 }
-.btn:hover:not(:disabled) { background: var(--ink); color: #fff; }
+/* 기본 버튼의 hover 는 배경을 통째로 반전하지 않습니다.
+ * 잉크로 채우면 점프가 커서 hover 가 클릭처럼 읽힙니다. */
+.btn:hover:not(:disabled) { background: var(--sub); }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .btn:disabled { background: var(--sub); color: var(--t4);
                 border-color: var(--line-2); cursor: not-allowed; }
 .btn-dark { background: var(--ink); color: #fff; border-color: var(--ink); }
-.btn-dark:hover:not(:disabled) { background: #1D2733; }
+.btn-dark:hover:not(:disabled) { background: #1D2733; border-color: #1D2733; }
 .btn-accent { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 700; }
 .btn-accent:hover:not(:disabled) { background: var(--blue-t); border-color: var(--blue-t); }
 .btn-danger { background: var(--card); color: var(--red); border-color: var(--red-line); }
-.btn-danger:hover:not(:disabled) { background: var(--red-bg); color: var(--red); }
+.btn-danger:hover:not(:disabled) { background: var(--red-bg); border-color: var(--red); }
 .btn-live { background: var(--red-bg); color: var(--red);
             border: 1.5px solid var(--red); font-weight: 700; padding: 8px 14px; }
-.btn-live:hover:not(:disabled) { background: #FBD9D6; color: var(--red); }
+.btn-live:hover:not(:disabled) { background: #FBD9D6; }
 .btn-tiny { font-size: 11.5px; padding: 5px 10px; color: var(--red); border-color: var(--red-line); }
-.btn-tiny:hover:not(:disabled) { background: var(--red-bg); color: var(--red); }
+.btn-tiny:hover:not(:disabled) { background: var(--red-bg); }
 .btn-big { border: 1.5px solid var(--ink); border-radius: 4px;
            padding: 15px 24px; font-size: 15px; font-weight: 700; }
 .btn-big.btn-dark { color: #fff; }
@@ -318,9 +356,12 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
   font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em;
   border: 0; padding: 6px 12px; cursor: pointer;
   background: var(--card); color: var(--t2);
-  transition: background .15s, color .15s;
+  transition: background var(--t-hover) ease, color var(--t-hover) ease,
+              transform var(--t-press) var(--ease-out);
 }
 .segbtn:hover { background: var(--sub); }
+.segbtn:active { transform: scale(.97); }
+.segbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .segbtn.on { background: var(--ink); color: #fff; }
 
 /* ── 카드 ─────────────────────────────────────────────────────────────── */
@@ -392,7 +433,8 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 /* 코칭 바 */
 .coach { display: flex; align-items: center; gap: 10px; padding: 10px 13px;
          background: var(--sub); border-left: 3px solid var(--t2);
-         transition: background .3s, border-color .3s; }
+         transition: background var(--t-state) var(--ease-out),
+                     border-color var(--t-state) var(--ease-out); }
 .coach-icon { font-family: var(--mono); font-size: 12px; font-weight: 700; }
 .coach-text { font-size: 13.5px; font-weight: 600; }
 .coach-meta { margin-left: auto; font-family: var(--mono); font-size: 10px;
@@ -413,6 +455,7 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 .dropzone-stage { aspect-ratio: 16/10; }
 .dropzone-wide { flex-direction: row; padding: 18px; gap: 16px; text-align: left; }
 .dropzone:hover, .dropzone.drag { border-color: var(--blue); background: var(--blue-bg); }
+.dropzone:active { border-color: var(--blue-t); }
 .dropzone:focus-visible { border-color: var(--blue); outline: none;
                           box-shadow: 0 0 0 3px rgba(11,87,208,.3); }
 .dz-mark { width: 42px; height: 42px; border: 2px solid var(--t3); flex: none; }
@@ -433,7 +476,11 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 .bar.top .bar-label { font-weight: 700; }
 .bar-track { height: 14px; background: var(--page); border: 1px solid var(--line-2); }
 /* width 는 JS가 rAF에서 넣습니다 — 노드를 재생성하면 트랜지션이 재생되지 않습니다 */
-.bar-fill { height: 100%; width: 0; transition: width .5s var(--ease); }
+/* width 대신 scaleX 를 씁니다. width 는 레이아웃·페인트를 유발하고 중간에
+ * 목표값이 바뀌면 매끄럽게 이어지지 않습니다. transform 은 GPU 에서 돌고
+ * 재조준(retarget)이 자연스럽습니다. JS 는 ui.setFill() 로 값을 넣습니다. */
+.bar-fill { height: 100%; width: 100%; transform: scaleX(0); transform-origin: left center;
+            transition: transform var(--t-fill) var(--ease-out); }
 .bar-pct { font-family: var(--mono); font-size: 13px; font-weight: 700;
            text-align: right; font-variant-numeric: tabular-nums; color: var(--t2); }
 
@@ -454,11 +501,27 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 .prog-head { display: flex; justify-content: space-between; font-family: var(--mono);
              font-size: 10px; letter-spacing: .04em; color: var(--t2); margin-bottom: 5px; }
 .prog-track { height: 6px; background: var(--page); border: 1px solid var(--line-2); }
-.prog-fill { height: 100%; background: var(--blue); transition: width .18s linear; }
+.prog-fill { height: 100%; width: 100%; background: var(--blue);
+             transform: scaleX(0); transform-origin: left center;
+             transition: transform 180ms linear; }
 
 /* ── 판정 카드 ────────────────────────────────────────────────────────── */
-.verdict { background: var(--card); border: 1.5px solid var(--t2); }
-.verdict-head { padding: 14px 15px 15px; color: #fff; background: var(--t2); }
+/* 판정이 바뀔 때 색이 즉시 튀지 않게 합니다. 급작스러운 변화를 막는 것이
+ * 이 전환의 유일한 목적입니다 (장식 아님). */
+.verdict { position: relative; background: var(--card); border: 1.5px solid var(--t2);
+           transition: border-color var(--t-state) var(--ease-out); }
+.verdict-head { padding: 14px 15px 15px; color: #fff; background: var(--t2);
+                transition: background var(--t-state) var(--ease-out); }
+.verdict-icon { transition: color var(--t-state) var(--ease-out); }
+
+/* 판정 확정 플래시 — 링을 box-shadow 대신 의사요소의 transform+opacity 로 그립니다.
+ * 같은 키프레임 두 개를 번갈아 적용해 애니메이션을 재시작시킵니다. */
+.verdict::after {
+  content: ''; position: absolute; inset: -1.5px; pointer-events: none;
+  border: 2px solid var(--flash, transparent); opacity: 0;
+}
+.verdict.flash-a::after { animation: ringA 620ms var(--ease-out) forwards; }
+.verdict.flash-b::after { animation: ringB 620ms var(--ease-out) forwards; }
 .verdict-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
 .verdict-badge { display: flex; align-items: center; gap: 8px; }
 .verdict-icon { width: 20px; height: 20px; background: #fff; font-family: var(--mono);
@@ -483,12 +546,16 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
                 font-family: var(--mono); font-size: 10px; letter-spacing: .04em;
                 color: var(--t2); margin-bottom: 6px; }
 .confirm-track { height: 5px; background: var(--line-2); }
-.confirm-fill { height: 100%; transition: width .25s ease; background: var(--amber); }
+.confirm-fill { height: 100%; width: 100%; background: var(--amber);
+                transform: scaleX(0); transform-origin: left center;
+                transition: transform var(--t-state) var(--ease-out); }
 .disclose { width: 100%; border: 0; border-top: 1px solid var(--line);
             background: var(--card); color: var(--t2); font-family: var(--mono);
             font-size: 11px; font-weight: 700; letter-spacing: .06em;
             padding: 11px; cursor: pointer; transition: background .15s; }
 .disclose:hover { background: var(--sub); }
+.disclose:active { background: var(--line-2); }
+.disclose:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 
 /* 불확실성 5지표 */
 .unc-row { display: flex; align-items: center; justify-content: space-between;
@@ -531,7 +598,9 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
                 line-height: 1; font-variant-numeric: tabular-nums; }
 .batch-num .d { font-family: var(--mono); font-size: 11px; color: var(--t3); padding-bottom: 4px; }
 .batch-track { height: 6px; background: var(--ink-2); margin-bottom: 12px; }
-.batch-fill { height: 100%; background: #fff; transition: width .18s linear; }
+.batch-fill { height: 100%; width: 100%; background: #fff;
+              transform: scaleX(0); transform-origin: left center;
+              transition: transform 180ms linear; }
 .batchbox .btn { flex: 1; }
 .batchbox .btn-dark { background: #fff; color: var(--ink); border-color: #fff; }
 .batchbox .btn-dark:hover:not(:disabled) { background: var(--page); }
@@ -597,8 +666,11 @@ code   { font-family: var(--mono); font-size: .92em; background: var(--sub); pad
 .policybtn { text-align: left; display: flex; flex-direction: column; gap: 3px;
              padding: 11px 12px; cursor: pointer; font-family: var(--sans);
              border: 1px solid var(--line); background: var(--card); color: var(--t2);
-             transition: border-color .15s, background .15s, color .15s; }
+             transition: border-color var(--t-hover) ease, background var(--t-hover) ease,
+                         color var(--t-hover) ease, transform var(--t-press) var(--ease-out); }
 .policybtn:hover { border-color: var(--blue); }
+.policybtn:active { transform: scale(.99); }
+.policybtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .policybtn.on { border-color: var(--blue); background: var(--blue-bg); color: var(--blue-t); }
 .policybtn .t { font-size: 13px; font-weight: 700; }
 .policybtn .d { font-size: 11.5px; line-height: 1.45; opacity: .85; }
@@ -736,12 +808,18 @@ input[type="range"]:focus-visible { outline: 2px solid var(--blue); outline-offs
 .toggle-labels .k { font-size: 13px; color: var(--ink); }
 .toggle-labels .en { font-family: var(--mono); font-size: 10px;
                      letter-spacing: .04em; color: var(--t3); }
-.switch { width: 42px; height: 24px; background: var(--line); padding: 3px;
-          display: flex; justify-content: flex-start; cursor: pointer; border: 0;
-          transition: background .18s var(--ease); flex: none; }
-.switch i { width: 18px; height: 18px; background: #fff; display: block;
-            transition: transform .18s var(--ease); }
-.switch[aria-checked="true"] { background: var(--ink); justify-content: flex-end; }
+.switch { position: relative; width: 42px; height: 24px; background: var(--line);
+          cursor: pointer; border: 0; flex: none; display: block;
+          transition: background var(--t-state) var(--ease-out),
+                      transform var(--t-press) var(--ease-out); }
+.switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+            background: #fff; display: block;
+            transition: transform var(--t-state) var(--ease-out); }
+/* 42 - 3(좌) - 3(우) - 18(노브) = 18px 이동 */
+.switch[aria-checked="true"] { background: var(--ink); }
+.switch[aria-checked="true"] i { transform: translateX(18px); }
+.switch:active { transform: scale(.96); }
+.switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .storerow { display: flex; align-items: center; justify-content: space-between;
             gap: 10px; padding: 10px 0; border-top: 1px solid var(--page); }
@@ -753,8 +831,9 @@ input[type="range"]:focus-visible { outline: 2px solid var(--blue); outline-offs
 .cmdk-backdrop { position: fixed; inset: 0; background: rgba(10,14,20,.55);
                  z-index: 100; display: flex; align-items: flex-start;
                  justify-content: center; padding-top: 12vh; }
-.cmdk { width: 560px; background: var(--card); border: 1.5px solid var(--ink);
-        animation: fadeUp .18s var(--ease); }
+/* ⌘K 로 여는 것이라 애니메이션을 넣지 않습니다. 하루에 수백 번 쓰는 동작에
+ * 애니메이션이 붙으면 느리고 입력과 끊긴 느낌이 됩니다. */
+.cmdk { width: 560px; background: var(--card); border: 1.5px solid var(--ink); }
 .cmdk-input { width: 100%; border: 0; border-bottom: 1px solid var(--line);
               padding: 15px 16px; font-family: var(--sans); font-size: 15px;
               color: var(--ink); outline: none; background: var(--card); }
@@ -764,6 +843,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--blue); outline-offs
              padding: 11px 16px; border: 0; background: var(--card);
              cursor: pointer; text-align: left; font-family: var(--sans); }
 .cmdk-item:hover, .cmdk-item.sel { background: var(--blue-bg); }
+.cmdk-item:active { background: #D3E1FB; }
 .cmdk-item .k { font-size: 13.5px; color: var(--ink); font-weight: 600; }
 .cmdk-item .en { font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
                  color: var(--t3); margin-left: auto; }
@@ -798,6 +878,7 @@ input[type="range"]:focus-visible { outline: 2px solid var(--blue); outline-offs
             font-family: var(--sans); font-size: 12.5px; color: var(--t2);
             transition: background .15s, color .15s, border-color .15s; }
 .toc-item:hover { background: var(--sub); color: var(--ink); }
+.toc-item:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .toc-item.on { border-left-color: var(--ink); color: var(--ink); font-weight: 700;
                background: var(--sub); }
 .toc-item .n { font-family: var(--mono); font-size: 10px; color: var(--t3); flex: none; }
@@ -889,8 +970,11 @@ input[type="range"]:focus-visible { outline: 2px solid var(--blue); outline-offs
               align-items: center; justify-content: center;
               font-family: var(--mono); font-size: 14px; font-weight: 700;
               color: transparent; flex: none;
-              transition: background .15s, border-color .15s, color .15s; }
+              transition: background var(--t-hover) ease, border-color var(--t-hover) ease,
+                          color var(--t-hover) ease, transform var(--t-press) var(--ease-out); }
 .step-check:hover { border-color: var(--ink); }
+.step-check:active { transform: scale(.94); }
+.step-check:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .step[data-done="1"] .step-check { background: var(--green); border-color: var(--green); color: #fff; }
 .step-num { font-family: var(--mono); font-size: 10px; font-weight: 700;
             letter-spacing: .1em; color: var(--blue); margin-bottom: 5px; }
@@ -900,7 +984,9 @@ input[type="range"]:focus-visible { outline: 2px solid var(--blue); outline-offs
 .step-b > * + * { margin-top: 9px; }
 .step-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .step-progress .track { flex: 1; height: 6px; background: var(--line-2); }
-.step-progress .fill { height: 100%; background: var(--green); transition: width .3s var(--ease); }
+.step-progress .fill { height: 100%; width: 100%; background: var(--green);
+                       transform: scaleX(0); transform-origin: left center;
+                       transition: transform var(--t-state) var(--ease-out); }
 
 /* 문서 표 */
 .doc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -982,8 +1068,11 @@ input[type="range"]:focus-visible { outline: 2px solid var(--blue); outline-offs
 .sample-btn { display: flex; align-items: center; gap: 7px; padding: 4px 8px 4px 4px;
               border: 1px solid var(--line); background: var(--card); cursor: pointer;
               font-family: var(--sans); font-size: 11.5px; color: var(--ink);
-              transition: border-color .15s, background .15s; }
+              transition: border-color var(--t-hover) ease, background var(--t-hover) ease,
+                          transform var(--t-press) var(--ease-out); }
 .sample-btn:hover { border-color: var(--blue); background: var(--blue-bg); }
+.sample-btn:active { transform: scale(.97); }
+.sample-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .sample-btn img { width: 26px; height: 26px; object-fit: cover; display: block; background: #111; }
 .samples-note { font-family: var(--mono); font-size: 9.5px; letter-spacing: .04em;
                 color: var(--t3); margin-left: auto; }

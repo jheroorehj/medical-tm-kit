@@ -32,6 +32,21 @@ export function show(el, on = true) {
   else el.setAttribute('hidden', '');
 }
 export function setText(el, t) { if (el) el.textContent = t; }
+
+/**
+ * 채우기 막대의 값을 넣습니다. @param {number} ratio 0~1
+ *
+ * width 가 아니라 transform: scaleX 를 씁니다.
+ *   · width 는 레이아웃과 페인트를 유발하고, transform 은 GPU 에서 끝납니다.
+ *   · 값이 애니메이션 중에 다시 바뀔 때(실시간 판독·배치 진행) transform 은
+ *     현재 위치에서 자연스럽게 재조준되지만 width 는 끊겨 보입니다.
+ * CSS 쪽은 width:100% + transform-origin:left 로 맞춰져 있습니다.
+ */
+export function setFill(el, ratio) {
+  if (!el) return;
+  const r = Math.max(0, Math.min(1, Number(ratio) || 0));
+  el.style.transform = `scaleX(${r.toFixed(4)})`;
+}
 export function setHtml(el, h) { if (el) el.innerHTML = h; }
 
 /** 모델 metadata에서 온 문자열을 innerHTML에 넣기 전에 반드시 통과시킵니다. */
@@ -109,11 +124,15 @@ export function renderVerdict(d, x = {}) {
   setText($('#verdict-detail'), d.detail);
   setText($('#verdict-advice'), d.advice || '—');
 
-  // 판정이 갱신될 때마다 링 플래시. 동일 키프레임 두 개를 번갈아 적용해
-  // 애니메이션을 강제로 재시작시킵니다 (디자인의 flash % 2 트릭).
+  // 판정이 갱신될 때마다 링 플래시.
+  // 링은 .verdict::after 에 그려지므로 인라인 style 로는 겨냥할 수 없어
+  // 클래스를 토글합니다. 동일 키프레임 두 개를 번갈아 붙여 재시작시킵니다.
   if (x.flash) {
     flashParity ^= 1;
-    $('#verdict').style.animation = `${flashParity ? 'ringA' : 'ringB'} .75s ease-out`;
+    const v = $('#verdict');
+    v.style.setProperty('--flash', p.color);
+    v.classList.remove('flash-a', 'flash-b');
+    v.classList.add(flashParity ? 'flash-a' : 'flash-b');
   }
 
   // 실시간 확정 진행
@@ -128,7 +147,7 @@ export function renderVerdict(d, x = {}) {
     lab.style.color = done ? GREEN : AMBER;
     lab.style.fontWeight = '700';
     const fill = $('#confirm-fill');
-    fill.style.width = `${Math.round(x.temporal.progress * 100)}%`;
+    setFill(fill, x.temporal.progress);
     fill.style.background = done ? GREEN : AMBER;
   } else {
     show(cr, false);
@@ -143,7 +162,10 @@ export function renderVerdict(d, x = {}) {
 }
 
 export function resetVerdict() {
-  $('#verdict').style.borderColor = 'var(--t2)';
+  const v = $('#verdict');
+  v.classList.remove('flash-a', 'flash-b');
+  v.style.removeProperty('--flash');
+  v.style.borderColor = 'var(--t2)';
   $('#verdict-head').style.background = 'var(--t2)';
   const icon = $('#verdict-icon');
   icon.textContent = '·';
@@ -203,7 +225,7 @@ export function renderBars(ranked) {
       const r = ranked[i];
       if (!r || !el.classList.contains('bar')) return;
       el.classList.toggle('top', i === 0);
-      el.querySelector('.bar-fill').style.width = `${(r.prob * 100).toFixed(1)}%`;
+      setFill(el.querySelector('.bar-fill'), r.prob);
       const pctEl = el.querySelector('.bar-pct');
       pctEl.textContent = pct(r.prob);
       pctEl.style.color = i === 0 ? r.def.color : 'var(--t2)';
@@ -664,7 +686,7 @@ export function renderDiagnostics(rows) {
 export function renderSteps(steps, done) {
   const n = steps.filter(s => done[s.id]).length;
   setText($('#step-count'), `${n} / ${steps.length}`);
-  $('#step-fill').style.width = `${(n / steps.length * 100).toFixed(0)}%`;
+  setFill($('#step-fill'), n / steps.length);
 
   setHtml($('#steps'), steps.map(s => `
     <div class="step" data-done="${done[s.id] ? 1 : 0}">
