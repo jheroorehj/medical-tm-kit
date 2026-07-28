@@ -10,27 +10,33 @@ Teachable Machine 기반 의료영상 분류 서비스의 **주제 무관 프레
 5탭 콘솔)을 구현한 것입니다. 입력은 **이미지 업로드**이며(대회 기준),
 웹캠은 `ui.enableWebcam` 으로 껐습니다. 직접 다시 만들 경우 **`FRONTEND-SPEC.md`** 를 보세요 —
 `web/js/` 의 로직 모듈 11개는 DOM을 거의 모르므로 그대로 재사용하고 화면만 새로
-만들면 됩니다. 이전 구현은 `web-legacy/` 에 남아 있습니다.
+만들면 됩니다.
 
 ```
 medical-tm-kit/
-├── FRONTEND-SPEC.md            프론트엔드 구현 요구사항 (직접 만들 때)
-├── serve.sh                    로컬 서버 (웹캠은 localhost 에서만 동작)
 ├── HACKATHON.md                ★ 대회 기준 대응표 · 데모 시나리오 · 기획서 양식
+├── FRONTEND-SPEC.md            프론트엔드를 직접 만들 때의 요구사항
+├── serve.sh                    로컬 서버 (localhost 또는 https 필요)
 ├── vercel.json                 Vercel 배포 설정
+├── test-logic.mjs              판정·지표·캘리브레이션 검증 (60개 단정)
+│
 ├── prep/                       ── TM 앞단: 데이터 파이프라인 (Python)
 │   ├── prep.config.yaml        ★ 교체 지점 1
 │   ├── from_csv.py             CSV 라벨 → 클래스 폴더 (병합·언더샘플·환자그룹)
 │   ├── pipeline.py             전처리 · 중복제거 · 원본단위 홀드아웃 분할
 │   ├── augment.py              일반 증강 + 웹캠 열화 증강
+│   ├── negatives.py            무효 입력 클래스 생성
+│   ├── make_samples.py         내장 샘플 생성 (업로드 실패 대비 · 데모 안정성)
+│   ├── fetch_model.py          TM 모델 파일을 내려받아 함께 배포
 │   ├── recapture.py            재촬영 증강 (모니터 → 웹캠)
-│   └── negatives.py            무효 입력 클래스 생성
-├── web/                        ── TM 뒷단: 서비스 레이어 (바닐라 JS, 빌드 없음)
-│   ├── project.config.js       ★ 교체 지점 2
-│   ├── index.html / app.css    RADIOLENS 디자인 구현
-│   └── js/                     13개 모듈 (로직 11 + ui + main)
-│       └── 도움말 탭: 환경 자동 점검 · 6단계 체크리스트 · 오류 사전
-└── web-legacy/                 이전 구현 (참고용)
+│   ├── make_testdata.py        스모크 테스트용 더미 생성
+│   └── requirements.txt
+│
+└── web/                        ── TM 뒷단: 서비스 레이어 (바닐라 JS, 빌드 없음)
+    ├── project.config.js       ★ 교체 지점 2
+    ├── index.html · app.css    랜딩 + 5탭 콘솔
+    ├── samples.js              내장 샘플 (make_samples.py 가 생성)
+    └── js/                     13개 모듈 = 로직 11 + ui + main
 ```
 
 **처음 쓰는 사람은 앱의 `도움말` 탭부터 보세요** — 환경을 자동 점검해 무엇이 막혔는지
