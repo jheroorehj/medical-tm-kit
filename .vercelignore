@@ -1,5 +1,6 @@
 prep/
 data/
+docs/
 test-logic.mjs
 *.md
 !web/**

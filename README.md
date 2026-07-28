@@ -16,6 +16,8 @@ Teachable Machine 기반 의료영상 분류 서비스의 **주제 무관 프레
 medical-tm-kit/
 ├── HACKATHON.md                ★ 대회 기준 대응표 · 데모 시나리오 · 기획서 양식
 ├── FRONTEND-SPEC.md            프론트엔드를 직접 만들 때의 요구사항
+├── docs/
+│   └── 바이오헬스AI_해커톤정리.md   강의 30차시 정리 (대회 기준의 원문)
 ├── serve.sh                    로컬 서버 (localhost 또는 https 필요)
 ├── vercel.json                 Vercel 배포 설정
 ├── test-logic.mjs              판정·지표·캘리브레이션 검증 (60개 단정)
@@ -89,8 +91,9 @@ Teachable Machine은 **MobileNet 특징 추출기를 고정하고 마지막 분�
 > 카메라가 열리지 않고, ES 모듈 import도 CORS로 차단됩니다.
 > `localhost` 또는 `https`(Vercel 배포본)가 필요합니다.
 
-**대회 참가자는 먼저 `HACKATHON.md` 를 보세요** — 평가 기준 대응표, 8분 데모 시나리오,
-1페이지 기획서 양식, 당일 시간 배분이 정리되어 있습니다.
+**대회 참가자는 먼저 [`HACKATHON.md`](HACKATHON.md) 를 보세요** — 평가 기준 대응표,
+8분 데모 시나리오, 1페이지 기획서 양식, 당일 시간 배분이 정리되어 있습니다.
+근거가 되는 강의 원문은 [`docs/바이오헬스AI_해커톤정리.md`](docs/바이오헬스AI_해커톤정리.md) 에 있습니다.
 
 데이터 파이프라인:
 
