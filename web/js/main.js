@@ -68,6 +68,7 @@ function boot() {
   bindEval();
   bindHistory();
   bindSettings();
+  bindDetail();
   bindHelp();
 
   app.registry.onChange(onRegistry);
@@ -798,6 +799,38 @@ async function runOnce(kind) {
   }
 }
 
+/* ── 판독 화면의 전문 지표 접기 ───────────────────────────────────────── *
+ * 최종 사용자가 처음 보는 것은 판정·유사도·권고·안전문구 네 가지로 충분합니다.
+ * 엔트로피·jitter 같은 용어는 기본으로 접어 두고, 필요한 사람이 펼치게 합니다.
+ * 선택은 저장되므로 데모 중에 한 번 펼치면 그대로 유지됩니다.
+ *
+ * (이 버튼은 이전까지 클릭 핸들러가 없어 눌러도 아무 일이 없었습니다.)
+ * ------------------------------------------------------------------------ */
+
+function bindDetail() {
+  const btn = $('#detail-toggle');
+  const box = $('#detail-block');
+  if (!btn || !box) return;
+
+  if (app.settings.detailOpen === undefined) {
+    app.settings.detailOpen = PROJECT.ui?.showDetailByDefault === true;
+  }
+
+  const apply = () => {
+    const on = !!app.settings.detailOpen;
+    ui.show(box, on);
+    btn.textContent = on ? '자세히 접기 —' : '자세히 보기 · 불확실성 5개 지표 +';
+    btn.setAttribute('aria-expanded', String(on));
+  };
+
+  btn.addEventListener('click', () => {
+    app.settings.detailOpen = !app.settings.detailOpen;
+    persistSettings();
+    apply();
+  });
+  apply();
+}
+
 /* ── 근거 히트맵 ──────────────────────────────────────────────────────── */
 
 function bindHeatmap() {
@@ -907,7 +940,9 @@ function bindEval() {
     const box = $('#eval-detail');
     const on = box.hidden;
     ui.show(box, on);
-    $('#eval-detail-toggle').textContent = on
+    const b = $('#eval-detail-toggle');
+    b.setAttribute('aria-expanded', String(on));
+    b.textContent = on
       ? '혼동행렬 · 캘리브레이션 · 실패 사례 접기 —'
       : '자세히 보기 · 혼동행렬 · 캘리브레이션 · 실패 사례 +';
   });
