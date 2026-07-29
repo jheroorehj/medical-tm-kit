@@ -6,9 +6,23 @@
 > **문서 우선순위**: 공식 배점표 > 대회 안내 사항 > 강의 정리(`docs/바이오헬스AI_해커톤정리.md`).
 > 충돌하면 위쪽을 따릅니다. 강의에서 강하게 강조했지만 배점 항목이 없는 것도 있습니다.
 
-이 파일은 **git 으로 팀원과 공유되고, 배포에는 포함되지 않습니다.**
+### 팀원에게
+
+이 파일은 **git 으로 공유되고 배포에는 포함되지 않습니다.**
 `.vercelignore` 의 `*.md` 와 `vercel.json` 의 `outputDirectory: "web"` 두 겹으로 제외됩니다.
 둘 중 하나를 지워도 다른 하나가 막지만, 둘 다 지우지 마세요.
+
+**Claude Code 로 이 폴더에서 작업하면 이 파일이 자동으로 읽힙니다.** 따로 붙여넣지 않아도
+아래 규칙이 적용됩니다. 사람이 읽어도 되는 문서이니 작업 시작 전에 한 번 훑어 주세요.
+특히 **1장(작업 순서)** 과 **2장(절대 깨뜨리지 말 것)** 은 어기면 감점으로 직결됩니다.
+
+처음 클론했다면:
+
+```bash
+./serve.sh                                  # http://localhost:8000, 앱의 '도움말' 탭부터
+node test-logic.mjs                         # 70/70 통과해야 정상
+cd prep && pip install -r requirements.txt  # 데이터 작업 담당만
+```
 
 ---
 
@@ -336,11 +350,18 @@ Vercel MCP·플러그인은 아직 설정하지 않았습니다. `npx vercel` �
 
 ## 11. 프론트엔드 디자인 스킬 역할 분담
 
-상위 `../CLAUDE.md` 의 규칙이 그대로 적용됩니다. 요약하면:
+디자인 관련 스킬이 두 계열 설치되어 있습니다. 담당 레이어가 다르므로 병행하되,
+아래 우선순위로 판단을 나눕니다.
 
-- **구조 · 레이아웃 · 카피 · 색상** → `taste-skill` 계열
-- **모션 · 인터랙션 · 타이밍 · 컴포넌트 폴리시** → Emil Kowalski 계열
-  (`emil-design-eng`, `apple-design`, `improve-animations` 등)
+| 판단 대상 | 따를 계열 |
+|---|---|
+| 구조 · 레이아웃 · 타이포그래피 · 컬러 팔레트 · 카피 · 콘텐츠 밀도 | `taste-skill` 계열 |
+| 모션 · 애니메이션 · 제스처 · 인터랙션 타이밍 · 컴포넌트 폴리시 | Emil Kowalski 계열 (`emil-design-eng`, `apple-design`, `improve-animations`) |
+
+`taste-skill` 에도 모션 가이드가 일부 포함되어 판단이 겹칠 수 있습니다. 이때
+**애니메이션 디테일(easing, spring 값, interruptible transition)은 Emil 계열을 우선**합니다.
+
+권장 순서: 정적 레이아웃·비주얼을 먼저 완성하고, 그 위에 모션을 얹습니다.
 
 단, `taste-skill` 은 스스로 *"dashboards / dense product UI / data tables 는 범위 밖"* 이라고
 명시합니다. **콘솔 5탭(판독·성능평가·이력·설정·도움말)은 dense product UI** 이므로
