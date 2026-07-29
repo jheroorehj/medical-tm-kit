@@ -167,6 +167,57 @@ const good = C.buildCalibration(wellCal);
 ok('잘 보정된 모델은 ECE 낮음', good.ece < 0.05, good.ece);
 ok('  ok로 진단', C.describeCalibration(good).tone === 'ok');
 
+
+/* ══ 대회 불변식 (CLAUDE.md 2장) ═══════════════════════════════════════════
+ * 산문으로 적은 규칙은 지켜지지 않습니다. 실제로 어긋난 적이 있어서
+ * (inferRoi 0.70 vs center_crop 0.85) 기계가 검사하게 만듭니다. */
+const fs = await import('node:fs');
+const yml = fs.readFileSync(new URL('./prep/prep.config.yaml', import.meta.url), 'utf8');
+const num = (re, src) => parseFloat((src.match(re) || [])[1]);
+
+console.log('\n── 대회 불변식 ──');
+
+const centerCrop = num(/center_crop:\s*([\d.]+)/, yml);
+ok(`추론 ROI = 학습 center_crop (${PROJECT.decision.inferRoi} / ${centerCrop})`,
+   PROJECT.decision.inferRoi === centerCrop,
+   { inferRoi: PROJECT.decision.inferRoi, centerCrop });
+
+ok('판단 보류 임계값 0.70 (대회 지정 기본값)',
+   PROJECT.decision.holdThreshold === 0.70, PROJECT.decision.holdThreshold);
+
+ok('무효 입력 클래스가 정확히 1개',
+   INVALID_IDS.length === 1, INVALID_IDS);
+
+ok('발견해야 하는 소견(positive) 클래스가 1개 이상',
+   POSITIVE_IDS.length >= 1, POSITIVE_IDS);
+
+ok('클래스 id 가 전부 영문 (TM 에 그대로 노출됨)',
+   CLASS_IDS.every(id => /^[a-z0-9_]+$/i.test(id)), CLASS_IDS);
+
+ok('입력은 이미지 업로드 (웹캠 off)',
+   PROJECT.ui?.enableWebcam === false, PROJECT.ui?.enableWebcam);
+
+ok('전문 지표는 기본 접힘 (최종 사용자 관점)',
+   PROJECT.ui?.showDetailByDefault === false, PROJECT.ui?.showDetailByDefault);
+
+ok('안전 문구에 "교육용 프로토타입" 과 "진단" 포함',
+   /교육용 프로토타입/.test(PROJECT.copy.safetyNote) && /진단/.test(PROJECT.copy.safetyNote));
+
+// 화면에 나가는 카피에서 "확률" 은 부정 표현으로만 허용합니다
+const visible = [PROJECT.copy.safetyNote, PROJECT.copy.safetyLong, PROJECT.copy.privacyNote,
+                 PROJECT.copy.heroLead, PROJECT.copy.holdMessage, PROJECT.copy.marginMessage,
+                 ...PROJECT.classes.map(c => c.advice)].join(' ');
+// "확률이 아닌 / 아니라" 같은 부정 표현은 먼저 지우고 남은 것만 셉니다.
+// ('아닌' 과 '아니' 는 서로 다른 음절이라 한쪽만 매칭하면 놓칩니다.)
+const stripped = visible.replace(/확률\s*이?\s*아[니닌]\S*/g, '');
+const badProb = (stripped.match(/확률/g) || []).length;
+ok('화면 카피에서 "확률" 을 단정 표현으로 쓰지 않음', badProb === 0,
+   { 남은_확률: badProb, 문맥: stripped.match(/.{0,18}확률.{0,18}/g) });
+
+ok('한계(limitations)를 hard/soft 로 구분',
+   PROJECT.dataset.limitations.length > 0
+   && PROJECT.dataset.limitations.every(l => l.kind === 'hard' || l.kind === 'soft'));
+
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`통과 ${pass} / 실패 ${fail}`);
 process.exit(fail ? 1 : 0);
